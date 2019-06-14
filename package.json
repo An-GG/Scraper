@@ -1,0 +1,23 @@
+{
+  "name": "scraper",
+  "version": "1.0.0",
+  "description": "Database scraper for Echelon",
+  "main": "index.js",
+  "dependencies": {
+    "puppeteer": "^1.17.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/An-GG/Scraper.git"
+  },
+  "author": "Ankush Girotra",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/An-GG/Scraper/issues"
+  },
+  "homepage": "https://github.com/An-GG/Scraper#readme"
+}
