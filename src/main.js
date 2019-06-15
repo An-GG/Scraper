@@ -162,10 +162,7 @@ async function getData(input_username, input_password) {
     // Append Final assignments tables Into Tabledata
     var row = tabledata[flaggedCell.row];
     row.DETAILED[flaggedCell.cellTitle] = assignmentsTables;
-
   }
-
-
   /////////////////////////////////////
   /// VARIABLE STRUCTURE MARKER END ///
   /////////////////////////////////////
