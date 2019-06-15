@@ -12,13 +12,9 @@ async function getData(input_username, input_password) {
 
   // SETUP, USE SINGLE BROWSER INSTANCE LATER
   const browser = await puppeteer.launch({
-    headless: false
+    headless: true
   });
   const page = await browser.newPage();
-  page.setViewport({
-    width: 1000,
-    height: 1000
-  });
 
   // NEW PAGE FOR USER
   await page.goto(PSCONNECT_URL);
@@ -52,7 +48,7 @@ async function getData(input_username, input_password) {
   /////////////////////////////////////
 
   // Approach: Use HTML content to parse grid information, assume standard structure for selectors
-  const HTML_CONTENT = await page.content();
+  var HTML_CONTENT = await page.content();
 
   // Assuming: Row structure as TEACHER | NOTES | COURSE | PERIOD | CYCLE1 | CYCLE2 | EXAM1 | SEM1 | CYCLE3 | CYCLE4 | EXAM2 | SEM2
 
@@ -93,14 +89,86 @@ async function getData(input_username, input_password) {
       }
     }
 
+    // Add DETAILED subpath for later
+    row.DETAILED = {};
+
     tabledata["TABLEROW_" + TABLE_Y] = row;
+  }
+  // Open Flagged (non-empty) Cells and Scrape Contents
+  for (let flaggedCell of nonEmptyCells) {
+    // Create Cell Selector Using Assumed Format
+    let selector = "#_ctl0_tdMainContent > table > tbody > tr:nth-child(" + flaggedCell.selectorRow + ") > td:nth-child(" + flaggedCell.selectorCell + ") > a";
+    await page.waitForSelector(selector);
+    await page.click(selector);
+
+    // Wait For Heading To Appear Indicating Load Complete
+    await page.waitForSelector("#_ctl0_tdMainContent > h3");
+
+    // Scrape
+    // NOTE: Table Format Can Be Variable. EX: Calculus vs US Hist Have Different Headers.
+    // Must dynamically adjust for any table format.
+
+    HTML_CONTENT = await page.content();
+
+    // Seperate Out Tables
+    var assignmentsTables = [];
+    let HTML_AssignmentsTables = HTML_CONTENT.match(/<span class="CategoryName".*?<\/span>.*?<table.*?<\/table>/gs);
+
+    for (let HTML_AssignmentsTable of HTML_AssignmentsTables) {
+      var assignmentsTable = {};
+
+      // Parse Table Title (Includes Percentage)
+      assignmentsTable.title = HTML_AssignmentsTable.match(/(?<=(<span class="CategoryName")).*?(?=(<\/span>))/gs)[0];
+
+      // Seperate Table Header, Which Includes Titles For All The Columns
+      var columnTitles = [];
+      var HTML_ColumnTitles = HTML_AssignmentsTable.match(/<th.*?<\/th>/gs);
+      for (let HTML_ColumnTitle of HTML_ColumnTitles) {
+        columnTitles.push(innertext(HTML_ColumnTitle));
+      }
+      assignmentsTable.columnTitles = columnTitles;
+
+      // Seperate Out Assignments
+      let HTML_Assignments = HTML_AssignmentsTable.match(/<tr class="DataRow.*?<\/tr>/gs);
+
+      // No Assignments Check
+      var Assignments_N = 0;
+      if (HTML_Assignments != null) {
+        Assignments_N = HTML_Assignments.length;
+      }
+
+      assignmentsTable.assignments = [];
+      for (var ASSIGNMENT_N = 0; ASSIGNMENT_N < Assignments_N; ASSIGNMENT_N++) {
+        var assignment = {};
+        let HTML_Assignment = HTML_Assignments[ASSIGNMENT_N];
+
+        // Seperate Out Cells In Assignment
+        let HTML_AssignmentCells = HTML_Assignment.match(/<td.*?<\/td>/gs);
+        for (var COLUMN_N = 0; COLUMN_N < HTML_AssignmentCells.length; COLUMN_N++) {
+          let cellText = innertext(HTML_AssignmentCells[COLUMN_N]);
+          assignment[columnTitles[COLUMN_N]] = cellText;
+        }
+        assignmentsTable.assignments.push(assignment);
+      }
+
+      // Parse Out Average
+      let average = HTML_AssignmentsTable.match(/(?<=(<td>Average<\/td><td>)).*?(?=(<\/td>))/gs)[0];
+      assignmentsTable.average = average;
+
+      assignmentsTables.push(assignmentsTable);
+    }
+    console.log(assignmentsTables);
+
+    // Append Final assignments tables Into Tabledata
+    var row = tabledata[flaggedCell.row];
+    row.DETAILED[flaggedCell.cellTitle] = assignmentsTables;
 
   }
 
 
-
   /////////////////////////////////////
-
+  /// VARIABLE STRUCTURE MARKER END ///
+  /////////////////////////////////////
 
 
 
