@@ -4,6 +4,7 @@
   "description": "Database scraper for Echelon",
   "main": "index.js",
   "dependencies": {
+    "innertext": "^1.0.3",
     "puppeteer": "^1.17.0"
   },
   "devDependencies": {},
