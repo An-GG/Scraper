@@ -2,28 +2,57 @@
 // Lowest Level Scraping Function
 // Copyright (c) Ankush Girotra 2019. All rights reserved.
 
-const puppeteer = require('puppeteer');
-const innertext = require('innertext');
-
-
 const PSCONNECT_URL = "https://publicapps.houstonisd.org/ParentStudentConnect/Login.aspx";
 const GRADEFRAME_URL = "https://parent.gradebook.houstonisd.org/pc/StudentMain.aspx";
-async function getData(input_username, input_password) {
 
-  // SETUP, USE SINGLE BROWSER INSTANCE LATER
-  const browser = await puppeteer.launch({
-    headless: false
-  });
-  const page = await browser.newPage();
+const puppeteer = require('puppeteer');
+const innertext = require('innertext');
+const idgenerator = require('./idgenerator.js');
 
-  // NEW PAGE FOR USER
-  await page.goto(PSCONNECT_URL);
+var sessions = {};
+var browser = {};
+
+async function initializeApp() {
+  browser = await puppeteer.launch();
+}
+
+
+async function createSession(input_username, input_password) {
+  let sessionID = input_username + input_password + idgenerator.randString(10);
+  sessions[sessionID] = {
+    input_username : input_username,
+    input_password : input_password,
+    sessionID : sessionID,
+    pageContent : "",
+    tabledata : {},
+    nonEmptyCells : []
+  }
+  return sessionID;
+}
+
+async function initializeSession(sessionID) {
+  var session = sessions[sessionID];
+  const context = await browser.createIncognitoBrowserContext();
+  const page = await context.newPage();
+  session.page = page;
+}
+
+async function navigateAndAttemptLogin(sessionID) {
+  var session = sessions[sessionID];
+  await session.page.goto(PSCONNECT_URL);
 
   // LOGIN USING GIVEN CREDENTIALS
-  await page.type("#ctl00_ContentArea_txtUserName", input_username);
-  await page.type("#ctl00_ContentArea_txtPassword", input_password);
-  const passwordField = await page.$("#ctl00_ContentArea_txtPassword");
+  await session.page.type("#ctl00_ContentArea_txtUserName", session.input_username);
+  await session.page.type("#ctl00_ContentArea_txtPassword", session.input_password);
+  const passwordField = await session.page.$("#ctl00_ContentArea_txtPassword");
   await passwordField.press('Enter');
+
+  // TODO: CREATE ERROR HANDLE FOR IF LOGIN FAILS
+}
+
+async function openGradebook(sessionID) {
+  var session = sessions[sessionID];
+  var page = session.page;
 
   // WAIT FOR AND CLICK GRADEBOOK BUTTON
   // Note: Gradebook launch button is clicked to authenticate realistic login.
@@ -37,24 +66,25 @@ async function getData(input_username, input_password) {
   // CACHE TO AUTHENTICATE IS IN PLACE, NAVIGATE TO GRADEBOOK
   await page.goto(GRADEFRAME_URL);
 
-
   // ClICK GRADES BUTTON
   await page.waitForSelector('#lnkGrades');
   await page.click('#lnkGrades');
+}
 
-  /////////////////////////////////////
-  ///// VARIABLE STRUCTURE MARKER /////
-  // STRUCTURE MAY VARY FOR SCHOOLS  //
-  /////////////////////////////////////
+async function scrapeUndetailedGrades(sessionID) {
+  var session = sessions[sessionID];
+  var page = session.page;
+
 
   // Approach: Use HTML content to parse grid information, assume standard structure for selectors
-  var HTML_CONTENT = await page.content();
+  var HTML_CONTENT = session.pageContent;
+  HTML_CONTENT = await page.content();
 
   // Assuming: Row structure as TEACHER | NOTES | COURSE | PERIOD | CYCLE1 | CYCLE2 | EXAM1 | SEM1 | CYCLE3 | CYCLE4 | EXAM2 | SEM2
 
   // Gather Table Metadata
-  var tabledata = {};
-  var nonEmptyCells = [];
+  var tabledata = session.tabledata;
+  var nonEmptyCells = session.nonEmptyCells;
 
   // Parses out individual rows of the table (or classes)
   const HTML_Rows = HTML_CONTENT.match(/<tr class="DataRow.*?<\/tr>/gs);
@@ -94,6 +124,17 @@ async function getData(input_username, input_password) {
 
     tabledata["TABLEROW_" + TABLE_Y] = row;
   }
+
+  return tabledata;
+}
+
+async function scrapeDetailedGrades(sessionID) {
+  var session = sessions[sessionID];
+  var page = session.page;
+  var HTML_CONTENT = session.pageContent;
+  var tabledata = session.tabledata;
+  var nonEmptyCells = session.nonEmptyCells;
+
   // Open Flagged (non-empty) Cells and Scrape Contents
   for (let flaggedCell of nonEmptyCells) {
     // Create Cell Selector Using Assumed Format
@@ -159,7 +200,7 @@ async function getData(input_username, input_password) {
     }
     console.log(assignmentsTables);
 
-    // Append Final assignments tables Into Tabledata
+    // Append Final assignments tables Into tabledata
     var row = tabledata[flaggedCell.row];
     row.DETAILED[flaggedCell.cellTitle] = assignmentsTables;
   }
@@ -168,13 +209,23 @@ async function getData(input_username, input_password) {
   /////////////////////////////////////
 
   return tabledata;
-
 }
+
+async function getData(input_username, input_password) {
+  var sessionID = await createSession(input_username, input_password);
+  await initializeSession(sessionID);
+  await navigateAndAttemptLogin(sessionID);
+  await openGradebook(sessionID);
+  await scrapeUndetailedGrades(sessionID);
+  await scrapeDetailedGrades(sessionID);
+}
+
 
 
 
 // EXPORTS
 
 module.exports = {
+  initializeApp: initializeApp,
   getUserSnapshot: getData
 };

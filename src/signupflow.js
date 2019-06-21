@@ -9,8 +9,13 @@ function initializeApp(firebase) {
 }
 
 async function registerUser() {
-
+  
 }
+
+
+//// The Register Functions Make Two Assumptions:
+//// 1. The Login For PSC_ID and PSC_PASS works
+//// 2. The User Doesnt Preexist
 
 async function registerHisdClient(PSC_ID, PSC_PASSWORD, FB_ID) {
   let idLowercase = PSC_ID.toLowerCase();
@@ -24,7 +29,7 @@ async function registerHisdClient(PSC_ID, PSC_PASSWORD, FB_ID) {
   };
 
   if (fbUsersForPasswordArray != null) {
-    // If The User Password Combo Prexist
+    // If The User Password Combo Preexist
     if (fbUsersForPasswordArray.includes(FB_ID)) {
       // User Already Registered With Same Account Info
       returnObject.exactUserAlreadyExists = true;
@@ -35,7 +40,7 @@ async function registerHisdClient(PSC_ID, PSC_PASSWORD, FB_ID) {
       returnObject.pscUserWithDiffFBIDPreexists = true;
     }
   } else {
-    // If The User Password Combo Do Not Prexist
+    // If The User Password Combo Do Not Preexist
     await passwordPSCUserRef.set([FB_ID]);
     returnObject.userAddedSuccessfully = true;
   }
@@ -49,7 +54,7 @@ async function registerFirebaseUser(PSC_ID, PSC_PASSWORD, FB_ID, NAME, STUDENTID
 
   var returnObject = {
     fbUserAddedSuccessfully : false,
-    fbUserPrexisted : false
+    fbUserPreexisted : false
   }
 
   var userobject = {
@@ -63,7 +68,7 @@ async function registerFirebaseUser(PSC_ID, PSC_PASSWORD, FB_ID, NAME, STUDENTID
 
   if (fbUser != null) {
     // Firebase User Preexists
-    returnObject.fbUserPrexisted = true;
+    returnObject.fbUserPreexisted = true;
     // NOTE: Even if user preexists, the user info will just be updated.
   }
 
@@ -77,5 +82,6 @@ async function registerFirebaseUser(PSC_ID, PSC_PASSWORD, FB_ID, NAME, STUDENTID
 
 module.exports = {
   initializeApp: initializeApp,
-  registerHisdClient: registerHisdClient
+  registerHisdClient: registerHisdClient,
+  registerFirebaseUser: registerFirebaseUser
 };
