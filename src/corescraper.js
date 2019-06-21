@@ -4,14 +4,7 @@
 
 const puppeteer = require('puppeteer');
 const innertext = require('innertext');
-var fb = require('firebase-admin');
-var serviceAccount = require("./../echelon-f16f8-firebase-adminsdk-ytuzc-7e23c999b7.json");
 
-// Initialize firebase
-fb.initializeApp({
-  credential: fb.credential.cert(serviceAccount),
-  databaseURL: "https://echelon-f16f8.firebaseio.com/"
-});
 
 const PSCONNECT_URL = "https://publicapps.houstonisd.org/ParentStudentConnect/Login.aspx";
 const GRADEFRAME_URL = "https://parent.gradebook.houstonisd.org/pc/StudentMain.aspx";
@@ -19,7 +12,7 @@ async function getData(input_username, input_password) {
 
   // SETUP, USE SINGLE BROWSER INSTANCE LATER
   const browser = await puppeteer.launch({
-    headless: true
+    headless: false
   });
   const page = await browser.newPage();
 
@@ -174,11 +167,14 @@ async function getData(input_username, input_password) {
   /// VARIABLE STRUCTURE MARKER END ///
   /////////////////////////////////////
 
-
+  return tabledata;
 
 }
 
 
 
-// TESTING
-getData("STUDENT\\s1620641", "YellowRiver812");
+// EXPORTS
+
+module.exports = {
+  getUserSnapshot: getData
+};
