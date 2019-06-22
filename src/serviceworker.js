@@ -5,6 +5,7 @@
 var corescraper = require("./corescraper.js");
 var signup = require("./signupflow.js");
 var fb = require('firebase-admin');
+var tokens = require('./tokens.js');
 var serviceAccount = require("./../echelon-f16f8-firebase-adminsdk-ytuzc-7e23c999b7.json");
 
 // Initialize
@@ -26,7 +27,7 @@ async function test() {
 
   //await fb.database().ref('data').push(data);
 
-  signup.handleUserSignUp('S1620641', 'YellowRiver812', 'ANOTHER_SAMPLE_FIREBASE_ID');
+  signup.handleUserSignUp(tokens.SAMPLES.STUDENTID, tokens.SAMPLES.STUDENTPW, 'ANOTHER_SAMPLE_FIREBASE_ID');
 }
 
 

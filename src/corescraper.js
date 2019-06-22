@@ -266,8 +266,8 @@ async function getData(input_username, input_password) {
 }
 
 async function testing() {
-  let usr = "s1620641";
-  let pw = "YellowRiver812";
+  let usr = "";
+  let pw = "";
 
   browser = await puppeteer.launch({
     headless: false
