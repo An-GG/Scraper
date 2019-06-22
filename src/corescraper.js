@@ -13,7 +13,9 @@ var sessions = {};
 var browser = {};
 
 async function initializeApp() {
-  browser = await puppeteer.launch();
+  browser = await puppeteer.launch({
+    headless: true
+  });
 }
 
 
@@ -45,9 +47,46 @@ async function navigateAndAttemptLogin(sessionID) {
   await session.page.type("#ctl00_ContentArea_txtUserName", session.input_username);
   await session.page.type("#ctl00_ContentArea_txtPassword", session.input_password);
   const passwordField = await session.page.$("#ctl00_ContentArea_txtPassword");
-  await passwordField.press('Enter');
 
-  // TODO: CREATE ERROR HANDLE FOR IF LOGIN FAILS
+
+  await passwordField.press('Enter');
+  await session.page.waitForNavigation();
+
+  var returnObject = {
+    loginSuccess : false,
+    passwordIncorrect : false
+  }
+
+  // CHECK IF LOGIN SUCCESSFULL
+  let content = await session.page.content();
+  if (content.includes('Invalid password.  Please try again.')) {
+    returnObject.passwordIncorrect = true;
+  } else if (content.includes('ctl00$ContentArea$Btn_Gradebook')) {
+    returnObject.loginSuccess = true;
+  } else {
+    console.log('ERROR: LOGIN FAIL, CREDENTIAL INVALIDITY DISPROVEN');
+  }
+
+  return returnObject;
+}
+
+async function scrapeStudentMetadata(sessionID) {
+  var session = sessions[sessionID];
+  let content = await session.page.content();
+
+  let studentName = content.match(/(?<=(<span id="ctl00_Tb_sname" class="Value">)).*?(?=(<\/span>))/g)[0];
+  let studentID = content.match(/(?<=(<span id="ctl00_Tb_SID" class="Value">)).*?(?=(<\/span>))/g)[0];
+  let school = content.match(/(?<=(<span id="ctl00_Tb_school" class="Value">)).*?(?=(<\/span>))/g)[0];
+  let gradeLevel = content.match(/(?<=(<span id="ctl00_Tb_Grade" class="Value">)).*?(?=(<\/span>))/g)[0];
+
+  let returnObject = {
+    studentName : studentName,
+    studentID : studentID,
+    school : school,
+    gradeLevel : gradeLevel
+  }
+
+  return returnObject;
 }
 
 async function openGradebook(sessionID) {
@@ -211,6 +250,12 @@ async function scrapeDetailedGrades(sessionID) {
   return tabledata;
 }
 
+async function endSession(sessionID) {
+  var session = sessions[sessionID];
+  await (await session.page.browserContext()).close();
+  delete session;
+}
+
 async function getData(input_username, input_password) {
   var sessionID = await createSession(input_username, input_password);
   await initializeSession(sessionID);
@@ -220,6 +265,25 @@ async function getData(input_username, input_password) {
   await scrapeDetailedGrades(sessionID);
 }
 
+async function testing() {
+  let usr = "s1620641";
+  let pw = "YellowRiver812";
+
+  browser = await puppeteer.launch({
+    headless: false
+  });
+
+  var id = await createSession(usr, pw);
+  await initializeSession(id);
+  await navigateAndAttemptLogin(id);
+  let meta = await scrapeStudentMetadata(id);
+  console.log(meta);
+  endSession(id);
+}
+
+//testing();
+
+
 
 
 
@@ -227,5 +291,14 @@ async function getData(input_username, input_password) {
 
 module.exports = {
   initializeApp: initializeApp,
-  getUserSnapshot: getData
+  getUserSnapshot: getData,
+
+  createSession: createSession,
+  initializeSession: initializeSession,
+  navigateAndAttemptLogin: navigateAndAttemptLogin,
+  scrapeStudentMetadata: scrapeStudentMetadata,
+  openGradebook: openGradebook,
+  scrapeUndetailedGrades: scrapeUndetailedGrades,
+  scrapeDetailedGrades: scrapeDetailedGrades,
+  endSession: endSession
 };

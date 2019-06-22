@@ -13,20 +13,20 @@ async function initializeApp() {
     credential: fb.credential.cert(serviceAccount),
     databaseURL: "https://echelon-f16f8.firebaseio.com/"
   });
-
-  await signup.initializeApp(fb);
   await corescraper.initializeApp();
+  await signup.initializeApp(fb, corescraper);
+
 }
 
 
 
 async function test() {
   await initializeApp();
-  let data = await corescraper.getUserSnapshot("STUDENT\\s1620641", "YellowRiver812");
+  //let data = await corescraper.getUserSnapshot("STUDENT\\s1620641", "YellowRiver812");
 
   //await fb.database().ref('data').push(data);
 
-  //signup.registerHisdClient('S1620641', 'YellowRiver812', 'SAMPLE_FIREBASE_ID');
+  signup.handleUserSignUp('S1620641', 'YellowRiver812', 'ANOTHER_SAMPLE_FIREBASE_ID');
 }
 
 
