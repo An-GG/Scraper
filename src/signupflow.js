@@ -4,13 +4,27 @@
 
 var fb = null;
 var scraper = null;
+const SIGNUP_REF = 'servercomm/signup';
+const DATA_REF = 'data'
 
-function initializeApp(firebase, corescraper) {
+async function initializeApp(firebase, corescraper) {
   fb = firebase;
   scraper = corescraper;
+  await attatchSignupListener();
 }
 
-async function handleUserSignUp(PSC_ID, PSC_PASSWORD, FB_ID) {
+async function attatchSignupListener() {
+  var signup_ref = await fb.database().ref(SIGNUP_REF);
+  await signup_ref.on('child_added', async function(snap, key) {
+    var val = await snap.val();
+    console.log(val);
+    var user_signup_ref = await signup_ref.child(val.FB_ID);
+    handleUserSignUp(val.PSC_ID.toLowerCase(), val.PSC_PASS, val.FB_ID, user_signup_ref);
+  });
+}
+
+async function handleUserSignUp(PSC_ID, PSC_PASSWORD, FB_ID, USER_SIGNUP_REF) {
+
   var returnObject = {
     USER_PREEXISTS : false,
     LOGIN_FAILED : false,
@@ -18,7 +32,8 @@ async function handleUserSignUp(PSC_ID, PSC_PASSWORD, FB_ID) {
     SIGNUP_COMPLETE : false
   };
 
-  // TODO: ACKNOWLEDGE CLIENT
+  // ACKNOWLEDGE CLIENT
+  await setSignupStatus(USER_SIGNUP_REF, 'ACKNOWLEDGED');
 
   // CHECK FOR EXISTING USER
   let existingUserMatch = await checkExistingUserEntry(PSC_ID, PSC_PASSWORD, FB_ID);
@@ -41,28 +56,49 @@ async function handleUserSignUp(PSC_ID, PSC_PASSWORD, FB_ID) {
 
   // SCRAPE USER METADATA
   let metadata = await scraper.scrapeStudentMetadata(sessionID);
-  // TODO: UPDATE FIREBASE STATUS AND METADATA
+  // UPDATE FIREBASE STATUS AND METADATA
+  await (await USER_SIGNUP_REF.child('meta')).set(metadata);
+  await setSignupStatus(USER_SIGNUP_REF, 'AUTHSUCCESS');
 
   // GET USER UNDETAILED GRADES
   await scraper.openGradebook(sessionID);
-  let undetailedGrades = await scraper.scrapeUndetailedGrades(sessionID);
-  // TODO: UPDATE FIREBASE STATUS AND UNDETAILED GRADES
+  let undetailedGrades = JSON.parse(JSON.stringify(await scraper.scrapeUndetailedGrades(sessionID)));
+
+  // UPDATE FIREBASE STATUS AND UNDETAILED GRADES
+  await (await USER_SIGNUP_REF.child('undetailed')).set(undetailedGrades);
+  await setSignupStatus(USER_SIGNUP_REF, 'UNDETAILED_COMPLETE');
 
   // GET USER DETAILED GRADES
   let detailedGrades = await scraper.scrapeDetailedGrades(sessionID);
   scraper.endSession(sessionID);
 
-  // TODO: CREATE INITIAL ENTRY
+  // CREATE INITIAL ENTRY
+  var dataref = await fb.database().ref(DATA_REF + '/' + FB_ID + '/' + PSC_ID);
+  let initialEntry = {
+    lightweight_snapshot: undetailedGrades,
+    full_snapshot: detailedGrades,
+    tracking: {
+      origin: detailedGrades
+    }
+  }
+  await dataref.set(initialEntry);
 
   // REGISTER HISD CLIENT AND FB USER
   await registerHisdClient(PSC_ID, PSC_PASSWORD, FB_ID);
   await registerFirebaseUser(PSC_ID, PSC_PASSWORD, FB_ID, metadata.studentName, metadata.studentID, metadata.school, metadata.gradeLevel, false);
 
-  // TODO: UPDATE FB FINAL STATUS
+  // UPDATE FB FINAL STATUS
+  await setSignupStatus(USER_SIGNUP_REF, 'SIGNUP_SUCCESS');
 
   returnObject.SIGNUP_COMPLETE = true;
-  return returnObject;
 
+  console.log('Done');
+  return returnObject;
+}
+
+async function setSignupStatus(USER_SIGNUP_REF, STATUS) {
+  var status_ref = await USER_SIGNUP_REF.child('status');
+  await status_ref.set(STATUS);
 }
 
 
@@ -126,7 +162,7 @@ async function registerHisdClient(PSC_ID, PSC_PASSWORD, FB_ID) {
 
 async function registerFirebaseUser(PSC_ID, PSC_PASSWORD, FB_ID, NAME, STUDENTID, SCHOOL, GRADE_LEVEL, OVERWRITE_IF_PREEXISTS) {
   let idLowercase = PSC_ID.toLowerCase();
-  let fbUserRef = fb.database().ref('users/' + FB_ID);
+  let fbUserRef = fb.database().ref('users/' + FB_ID + '/' + PSC_ID);
   var fbUser = (await fbUserRef.once('value')).val();
 
   var returnObject = {

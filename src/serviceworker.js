@@ -16,7 +16,6 @@ async function initializeApp() {
   });
   await corescraper.initializeApp();
   await signup.initializeApp(fb, corescraper);
-
 }
 
 
@@ -26,8 +25,6 @@ async function test() {
   //let data = await corescraper.getUserSnapshot("STUDENT\\s1620641", "YellowRiver812");
 
   //await fb.database().ref('data').push(data);
-
-  signup.handleUserSignUp(tokens.SAMPLES.STUDENTID, tokens.SAMPLES.STUDENTPW, 'ANOTHER_SAMPLE_FIREBASE_ID');
 }
 
 

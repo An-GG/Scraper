@@ -6,6 +6,7 @@
   "dependencies": {
     "firebase-admin": "^8.1.0",
     "innertext": "^1.0.3",
+    "node-stopwatch": "0.0.1",
     "puppeteer": "^1.17.0"
   },
   "devDependencies": {},
