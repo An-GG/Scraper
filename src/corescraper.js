@@ -237,7 +237,6 @@ async function scrapeDetailedGrades(sessionID) {
 
       assignmentsTables.push(assignmentsTable);
     }
-    console.log(assignmentsTables);
 
     // Append Final assignments tables Into tabledata
     var row = tabledata[flaggedCell.row];
