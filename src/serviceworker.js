@@ -7,6 +7,7 @@ var signup = require("./signupflow.js");
 var fb = require('firebase-admin');
 var tokens = require('./tokens.js');
 var serviceAccount = require("./../echelon-f16f8-firebase-adminsdk-ytuzc-7e23c999b7.json");
+var mwc = require('./mwc.js');
 var idgenerator = require('./idgenerator.js');
 
 var WORKER_ID = "";
@@ -21,13 +22,15 @@ async function initializeApp() {
     databaseURL: "https://echelon-f16f8.firebaseio.com/"
   });
   await corescraper.initializeApp();
-  await signup.initializeApp(WORKER_ID, fb, corescraper);
+  //await signup.initializeApp(WORKER_ID, fb, corescraper);
+  await mwc.initializeApp(WORKER_ID, fb);
 }
 
 
 
 async function test() {
   await initializeApp();
+  mwc.joinWorkers();
   //let data = await corescraper.getUserSnapshot("STUDENT\\s1620641", "YellowRiver812");
 
   //await fb.database().ref('data').push(data);
