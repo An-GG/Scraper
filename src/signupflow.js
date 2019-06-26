@@ -10,7 +10,7 @@ const DATA_REF = 'data';
 
 
 async function initializeApp(workerid, firebase, corescraper) {
-  WORKER_ID = serverid;
+  WORKER_ID = workerid;
   fb = firebase;
   scraper = corescraper;
   await attatchSignupListener();
@@ -187,7 +187,7 @@ async function setSignupStatus(USER_SIGNUP_REF, STATUS) {
 
 async function getSignupStatus(USER_SIGNUP_REF) {
   var status_ref = await USER_SIGNUP_REF.child('status');
-  await status_ref.once('value').then(function(snap){
+  await status_ref.once('value').then(async function(snap){
     var val = await snap.val();
     return val;
   });
