@@ -21,7 +21,7 @@ async function joinWorkers() {
   await checkIn();
 
   let workersRef = fb.database().ref(SERVERCOMM_REF + "/workers");
-  workersRef.once('child_added', function(snap, key) {
+  workersRef.on('child_added', function(snap, key) {
     let worker = snap.val();
     checkWorkerTimeout(worker);
   })
