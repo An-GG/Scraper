@@ -58,7 +58,8 @@ async function checkWorkerTimeout(worker) {
 }
 
 async function deleteWorker(workerID) {
-
+  let workerRef = fb.database().ref(SERVERCOMM_REF + "/workers/" + workerID);
+  await workerRef.remove();
 }
 
 
