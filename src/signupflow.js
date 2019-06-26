@@ -62,6 +62,7 @@ async function addSignupRequest(PSC_ID, PSC_PASSWORD, FB_ID, USER_SIGNUP_REF) {
   // Check If Processor Is Busy By Checking If Queue Is Empty
   if (queueIsEmpty) {
     // Send To Processor
+    console.log('sent request to processor')
     processRequest(taskN.toString());
   } else {
     // Processor is working, will get to task eventually.

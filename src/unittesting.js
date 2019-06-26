@@ -14,8 +14,6 @@ async function initializeApp() {
     credential: fb.credential.cert(serviceAccount),
     databaseURL: "https://echelon-f16f8.firebaseio.com/"
   });
-  await corescraper.initializeApp();
-  await signup.initializeApp(fb, corescraper);
 }
 
 async function simulateUserSignup(FB_ID, PSC_ID, PSC_PASS) {
