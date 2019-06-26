@@ -48,8 +48,7 @@ async function addSignupRequest(PSC_ID, PSC_PASSWORD, FB_ID, USER_SIGNUP_REF) {
   }
 
 
-  let queueIsEmpty = (queue == {});
-
+  let queueIsEmpty = (Object.keys(queue).length == 0);
   // Add Request To Queue
   taskN+=1;
   queue[taskN.toString()] = {
@@ -58,11 +57,9 @@ async function addSignupRequest(PSC_ID, PSC_PASSWORD, FB_ID, USER_SIGNUP_REF) {
     PSC_ID: PSC_ID,
     PSC_PASSWORD: PSC_PASSWORD
   };
-
   // Check If Processor Is Busy By Checking If Queue Is Empty
   if (queueIsEmpty) {
     // Send To Processor
-    console.log('sent request to processor')
     processRequest(taskN.toString());
   } else {
     // Processor is working, will get to task eventually.
@@ -87,7 +84,7 @@ async function processRequest(taskID) {
 
   // After Handling
   delete queue[taskID];
-  if (queue != {}) {
+  if (Object.keys(queue).length != 0) {
     // The Queue Is Not Empty
     let taskID = Object.keys(queue)[0];
     await processRequest(taskID);
