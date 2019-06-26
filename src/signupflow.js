@@ -4,26 +4,112 @@
 
 var fb = null;
 var scraper = null;
+var WORKER_ID = ""
 const SIGNUP_REF = 'servercomm/signup';
-const DATA_REF = 'data'
+const DATA_REF = 'data';
 
-async function initializeApp(firebase, corescraper) {
+
+async function initializeApp(workerid, firebase, corescraper) {
+  WORKER_ID = serverid;
   fb = firebase;
   scraper = corescraper;
   await attatchSignupListener();
 }
 
+
+// QUEING SYSTEM
+// Queue is list of tasks to be processed.
+// If Processor is busy, task is added to queue.
+// If Processor is not busy, task is sent directly to processor.
+
+var taskN = 0;
+var queue = {};
+
+// Sample Task to be in queue:
+/*
+'N' : {
+  REF: REF,
+  FB_ID: ID,
+  PSC_PASS: PASS,
+  PSC_ID: PSCID
+}
+*/
+
+async function addSignupRequest(PSC_ID, PSC_PASSWORD, FB_ID, USER_SIGNUP_REF) {
+  // Check Current Status
+  let currentStatus = await getSignupStatus(USER_SIGNUP_REF);
+  if (currentStatus == null) {
+    await setSignupStatus(USER_SIGNUP_REF, "ACKNOWLEDGED");
+  } else if (currentStatus == "ACKNOWLEDGED") {
+
+  } else {
+    // If Progressed Past ACKNOWLEDGED Then Drop Request
+    return;
+  }
+
+
+  let queueIsEmpty = (queue == {});
+
+  // Add Request To Queue
+  taskN+=1;
+  queue[taskN.toString()] = {
+    REF: USER_SIGNUP_REF,
+    FB_ID: FB_ID,
+    PSC_ID: PSC_ID,
+    PSC_PASSWORD: PSC_PASSWORD
+  };
+
+  // Check If Processor Is Busy By Checking If Queue Is Empty
+  if (queueIsEmpty) {
+    // Send To Processor
+    processRequest(taskN.toString());
+  } else {
+    // Processor is working, will get to task eventually.
+  }
+}
+
+// Processor
+async function processRequest(taskID) {
+  let requestObject = queue[taskID];
+
+  // Check Status Before Handling
+  let currentStatus = await getSignupStatus(requestObject.REF);
+  if (currentStatus == null || currentStatus == "ACKNOWLEDGED") {
+    await setSignupStatus(requestObject.REF, "STARTED");
+  } else {
+    // If Progressed Past ACKNOWLEDGED Then Drop Request
+    return;
+  }
+
+
+  await handleUserSignUp(requestObject.PSC_ID, requestObject.PSC_PASSWORD, requestObject.FB_ID, requestObject.REF);
+
+  // After Handling
+  delete queue[taskID];
+  if (queue != {}) {
+    // The Queue Is Not Empty
+    let taskID = Object.keys(queue)[0];
+    await processRequest(taskID);
+  }
+}
+
+
+
+
+// Assistant Methods
+
 async function attatchSignupListener() {
   var signup_ref = await fb.database().ref(SIGNUP_REF);
   await signup_ref.on('child_added', async function(snap, key) {
     var val = await snap.val();
-    console.log(val);
     var user_signup_ref = await signup_ref.child(val.FB_ID);
-    handleUserSignUp(val.PSC_ID.toLowerCase(), val.PSC_PASS, val.FB_ID, user_signup_ref);
+    addSignupRequest(val.PSC_ID.toLowerCase(), val.PSC_PASS, val.FB_ID, user_signup_ref);
   });
 }
 
 async function handleUserSignUp(PSC_ID, PSC_PASSWORD, FB_ID, USER_SIGNUP_REF) {
+
+  var WORKER_USER_SIGNUP_REF = await USER_SIGNUP_REF.child(WORKER_ID);
 
   var returnObject = {
     USER_PREEXISTS : false,
@@ -32,8 +118,6 @@ async function handleUserSignUp(PSC_ID, PSC_PASSWORD, FB_ID, USER_SIGNUP_REF) {
     SIGNUP_COMPLETE : false
   };
 
-  // ACKNOWLEDGE CLIENT
-  await setSignupStatus(USER_SIGNUP_REF, 'ACKNOWLEDGED');
 
   // CHECK FOR EXISTING USER
   let existingUserMatch = await checkExistingUserEntry(PSC_ID, PSC_PASSWORD, FB_ID);
@@ -57,7 +141,7 @@ async function handleUserSignUp(PSC_ID, PSC_PASSWORD, FB_ID, USER_SIGNUP_REF) {
   // SCRAPE USER METADATA
   let metadata = await scraper.scrapeStudentMetadata(sessionID);
   // UPDATE FIREBASE STATUS AND METADATA
-  await (await USER_SIGNUP_REF.child('meta')).set(metadata);
+  await (await WORKER_USER_SIGNUP_REF.child('meta')).set(metadata);
   await setSignupStatus(USER_SIGNUP_REF, 'AUTHSUCCESS');
 
   // GET USER UNDETAILED GRADES
@@ -65,7 +149,7 @@ async function handleUserSignUp(PSC_ID, PSC_PASSWORD, FB_ID, USER_SIGNUP_REF) {
   let undetailedGrades = JSON.parse(JSON.stringify(await scraper.scrapeUndetailedGrades(sessionID)));
 
   // UPDATE FIREBASE STATUS AND UNDETAILED GRADES
-  await (await USER_SIGNUP_REF.child('undetailed')).set(undetailedGrades);
+  await (await WORKER_USER_SIGNUP_REF.child('undetailed')).set(undetailedGrades);
   await setSignupStatus(USER_SIGNUP_REF, 'UNDETAILED_COMPLETE');
 
   // GET USER DETAILED GRADES
@@ -99,6 +183,14 @@ async function handleUserSignUp(PSC_ID, PSC_PASSWORD, FB_ID, USER_SIGNUP_REF) {
 async function setSignupStatus(USER_SIGNUP_REF, STATUS) {
   var status_ref = await USER_SIGNUP_REF.child('status');
   await status_ref.set(STATUS);
+}
+
+async function getSignupStatus(USER_SIGNUP_REF) {
+  var status_ref = await USER_SIGNUP_REF.child('status');
+  await status_ref.once('value').then(function(snap){
+    var val = await snap.val();
+    return val;
+  });
 }
 
 
