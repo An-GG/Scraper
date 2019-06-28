@@ -7,8 +7,8 @@ var WORKER_ID = ""
 const SERVERCOMM_REF = 'servercomm';
 const DATA_REF = 'data';
 
-const MSEC_BETWEEN_CHECKIN = 3000; // 5 Minutes
-const MSEC_BETWEEN_TIMEOUT = 3600; // 6 Minutes
+const MSEC_BETWEEN_CHECKIN = 300000; // 5 Minutes
+const MSEC_BETWEEN_TIMEOUT = 360000; // 6 Minutes
 
 
 async function initializeApp(workerid, firebase) {
@@ -61,6 +61,20 @@ async function deleteWorker(workerID) {
   let workerRef = fb.database().ref(SERVERCOMM_REF + "/workers/" + workerID);
   await workerRef.remove();
 }
+
+
+
+
+
+
+
+ // Scraper Functions
+
+async function joinScraperPool() {
+
+}
+
+
 
 
 
