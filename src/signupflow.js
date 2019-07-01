@@ -222,7 +222,8 @@ async function checkExistingUserEntry(PSC_ID, PSC_PASSWORD, FB_ID) {
 
 async function registerHisdClient(PSC_ID, PSC_PASSWORD, FB_ID) {
   let idLowercase = PSC_ID.toLowerCase();
-  let passwordPSCUserRef = fb.database().ref('hisd_clients/' + idLowercase + "/" + PSC_PASSWORD);
+  let lastUpdatedRef = fb.database().ref('hisd_clients/' + idLowercase + "/" + PSC_PASSWORD + "/lastUpdated");
+  let passwordPSCUserRef = fb.database().ref('hisd_clients/' + idLowercase + "/" + PSC_PASSWORD + "/associatedUsers");
   var fbUsersForPasswordArray = (await passwordPSCUserRef.once('value')).val();
 
   var returnObject = {
@@ -247,6 +248,8 @@ async function registerHisdClient(PSC_ID, PSC_PASSWORD, FB_ID) {
     await passwordPSCUserRef.set([FB_ID]);
     returnObject.userAddedSuccessfully = true;
   }
+
+  await lastUpdatedRef.set((new Date() * 1));
   return returnObject;
 }
 
