@@ -82,11 +82,18 @@ function getLeastRecentlyUpdatedKey(object) {
 }
 
 async function scrapeStandard(sid, pass) {
-
+  var sessionID = await createSession(sid, pass);
+  await initializeSession(sessionID);
+  await navigateAndAttemptLogin(sessionID);
+  await openGradebook(sessionID);
+  let lightweight_snapshot = JSON.parse(JSON.stringify(await scraper.scrapeUndetailedGrades(sessionID)));
+  let full_snapshot = await scrapeDetailedGrades(sessionID);
+  let data = [lightweight_snapshot, full_snapshot];
+  return data;
 }
 
 async function updateFBUser(fb_id, psc_id, data) {
-
+  
 }
 
 
