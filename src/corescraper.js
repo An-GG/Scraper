@@ -114,7 +114,7 @@ async function scrapeUndetailedGrades(sessionID) {
   var session = sessions[sessionID];
   var page = session.page;
 
-
+  await page.waitForSelector('#_ctl0_tdMainContent');
   // Approach: Use HTML content to parse grid information, assume standard structure for selectors
   var HTML_CONTENT = session.pageContent;
   HTML_CONTENT = await page.content();

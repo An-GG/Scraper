@@ -99,7 +99,7 @@ async function synchronizeClients() {
   });
 }
 
-async function taskRefactor() {
+function taskRefactor() {
   // Get Scraper Data
   // TODO: Decide Which Workers Will Work or Scrape or Both
   let scrapers =  workers;
@@ -134,6 +134,8 @@ async function taskRefactor() {
       assignedClients[clientID] = client;
     }
   }
+  return assignedClients;
+  console.log(assignedClients);
 }
 
 
@@ -161,8 +163,8 @@ function sortAlphaNum(a, b) {
 // EXPORTS
 module.exports = {
   initializeApp: initializeApp,
-  trackWorkers: joinWorkers,
+  trackWorkers: trackWorkers,
   checkIn: checkIn,
   synchronizeClients: synchronizeClients,
-  assignedClients: assignedClients
+  taskRefactor: taskRefactor
 };

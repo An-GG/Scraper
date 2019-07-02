@@ -34,66 +34,101 @@ async function test() {
   await mwc.trackWorkers();
   await mwc.checkIn();
   await mwc.synchronizeClients();
+  setTimeout(startScraperLoop, 2000);
   //let data = await corescraper.getUserSnapshot("STUDENT\\s1620641", "YellowRiver812");
 
   //await fb.database().ref('data').push(data);
 }
 
+var clients = {}
+var durations = [];
 
+function logStats() {
+  var sum = 0;
+  for (let duration of durations) {
+    sum+=duration;
+  }
+  let average = (sum / durations.length) / 1000;
+  let last = durations[durations.length - 1] / 1000;
+  let cycle = durations.length;
+  console.log('CYCLE DURATION: '+ last +' | AVERAGE: ' + average + ' | CYCLE: ' + cycle);
+}
 
 async function startScraperLoop() {
-  let clients = mwc.assignedClients;
+  let startTime = (new Date() * 1);
+  clients = mwc.taskRefactor();
 
   // Get Least Recently Updated Client
   let sid = getLeastRecentlyUpdatedKey(clients);
   let value = clients[sid];
 
+
   // For Each PW, Do A Scrape
-  Object.enteries(value).forEach(passwordEntry => {
-    let password = passwordEntry[0];
-    let fb_ids = passwordEntry[1].associatedUsers;
+  for (let password of Object.keys(value)) {
+    let fb_ids = value[password].associatedUsers;
     let data = await scrapeStandard(sid, password);
     // For Each FB ID Assigned To This PW, Update User
     for (var fb_id of fb_ids) {
-      await updateFBUser(fb_id, sid, data);
+      await updateFBUser(fb_id, sid, data, password);
     }
-  });
-
+  }
+  let duration = (new Date() * 1) - startTime;
+  durations.push(duration);
+  logStats();
   setTimeout(startScraperLoop, SCRAPER_DELAY);
 }
 
 function getLeastRecentlyUpdatedKey(object) {
   var leastRecentKey = "";
   var leastRecentTime = (new Date() * 1);
-  Object.entries(object).forEach(entry => {
-    let key = entry[0];
-    let value = entry[1];
-
-    Object.enteries(object).forEach(passwordEntry => {
+  console.log(object);
+  console.log(Object.keys(object));
+  for (let key of Object.keys(object)) {
+    let value = object[key];
+    console.log(key);
+    for (let password of Object.keys(value)) {
+      let passwordEntry = value[password];
       let time = passwordEntry.lastUpdated;
       if (time < leastRecentTime) {
         leastRecentKey = key;
         leastRecentTime = time;
       }
-    });
-
-  });
+    }
+  }
   return leastRecentKey;
 }
 
 async function scrapeStandard(sid, pass) {
-  var sessionID = await createSession(sid, pass);
-  await initializeSession(sessionID);
-  await navigateAndAttemptLogin(sessionID);
-  await openGradebook(sessionID);
-  let lightweight_snapshot = JSON.parse(JSON.stringify(await scraper.scrapeUndetailedGrades(sessionID)));
-  let full_snapshot = await scrapeDetailedGrades(sessionID);
+  var sessionID = await corescraper.createSession(sid, pass);
+  await corescraper.initializeSession(sessionID);
+  await corescraper.navigateAndAttemptLogin(sessionID);
+  // TODO: Add error handle for sign in fail
+  await corescraper.openGradebook(sessionID);
+  let lightweight_snapshot = JSON.parse(JSON.stringify(await corescraper.scrapeUndetailedGrades(sessionID)));
+  let full_snapshot = await corescraper.scrapeDetailedGrades(sessionID);
+  await corescraper.endSession(sessionID);
   let data = [lightweight_snapshot, full_snapshot];
   return data;
 }
 
-async function updateFBUser(fb_id, psc_id, data) {
-  
+async function updateFBUser(fb_id, psc_id, data, pw) {
+  // SET NEW DATA
+  let dataRef = fb.database().ref('data/' + fb_id + '/' + psc_id);
+  await dataRef.update({
+    lightweight_snapshot: data[0],
+    full_snapshot: data[1]
+  });
+
+  // TOOD: CREATE TRACKING
+
+  // SET NEW LAST UPDATED
+  let time = (new Date() * 1);
+  if (clients[psc_id] != null) { // TODO : Check if this actually works
+    var client = clients[psc_id][pw];
+    client.lastUpdated = time;
+  }
+  let timeRef = fb.database().ref('hisd_clients/' + psc_id + '/' + pw + '/lastUpdated');
+  await timeRef.set(time);
 }
 
 
