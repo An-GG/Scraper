@@ -4,9 +4,9 @@
 
 var deepDiffMapper = function () {
   return {
-    VALUE_CREATED: 'created',
+    VALUE_CREATED: 'deleted',
     VALUE_UPDATED: 'updated',
-    VALUE_DELETED: 'deleted',
+    VALUE_DELETED: 'created',
     VALUE_UNCHANGED: 'unchanged',
     map: function(obj1, obj2) {
       if (this.isFunction(obj1) || this.isFunction(obj2)) {
@@ -95,6 +95,9 @@ function cleanUp(updates) {
           delete cleaned[key];
         }
       }
+      if (val.type == 'deleted') {
+        delete val.data;
+      }
     } else {
     	cleaned[key] = cleanUp(cleaned[key]);
       if (Object.keys(cleaned[key]).length == 0) {
@@ -112,7 +115,7 @@ function rebuild(initial, updates) {
 		let val = updates[key];
     if (val.isChangelogDirectory == 'YES') {
     	let type = val.type;
-      if (type == 'created') {
+      if (type == 'deleted') {
       	delete final[key];
       } else {
       	final[key] = val.data;
@@ -125,7 +128,7 @@ function rebuild(initial, updates) {
 }
 
 function getChanges(initial, current) {
-  return cleanUp(deepDiffMapper.map(initial, current));
+  return cleanUp(deepDiffMapper.map(current, initial));
 }
 
 

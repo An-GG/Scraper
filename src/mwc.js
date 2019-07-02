@@ -177,10 +177,11 @@ async function getTrackingForID(psc_id, fb_id) {
 async function getRebuiltSnapshot(psc_id, fb_id) {
   let updates = await getTrackingForID(psc_id, fb_id);
   let sortedTrackingIDs = Object.keys(updates.tracking).sort(sortAlphaNum);
-  var current = updates.origin;
+  console.log(sortedTrackingIDs)
+  var current = JSON.parse(JSON.stringify(updates.origin));
   for (let trackingID of sortedTrackingIDs) {
     let update = updates['tracking'][trackingID];
-    current = rebuild(current, update);
+    current = diff.rebuild(current, update);
   }
   return current;
 }

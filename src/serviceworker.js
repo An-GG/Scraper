@@ -52,6 +52,10 @@ function logStats() {
   console.log('CYCLE DURATION: '+ last +' | AVERAGE: ' + average + ' | CYCLE: ' + cycle);
 }
 
+let altID = "STUDENT\\S1680721";
+let altPW = "10132005";
+var isOffCycle = false
+
 async function startScraperLoop() {
   let startTime = (new Date() * 1);
   clients = mwc.taskRefactor();
@@ -64,7 +68,13 @@ async function startScraperLoop() {
   // For Each PW, Do A Scrape
   for (let password of Object.keys(value)) {
     let fb_ids = value[password].associatedUsers;
-    let data = await scrapeStandard(sid, password);
+    var data = null;
+    if (isOffCycle) {
+      data = await scrapeStandard(altID, altPW);
+    } else {
+      data = await scrapeStandard(sid, password);
+    }
+    isOffCycle = !isOffCycle;
     // For Each FB ID Assigned To This PW, Update User
     for (var fb_id of fb_ids) {
       await updateFBUser(fb_id, sid, data, password);
@@ -119,7 +129,7 @@ async function updateFBUser(fb_id, psc_id, data, pw) {
     full_snapshot: data[1]
   });
 
-  // TOOD: CREATE TRACKING
+  // CREATE TRACKING
   let rebuiltSnap = await mwc.getRebuiltSnapshot(psc_id, fb_id);
   let currentSnap = data[1];
   let updates = diff.getChanges(rebuiltSnap, currentSnap);
