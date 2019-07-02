@@ -8,8 +8,8 @@ var WORKER_ID = ""
 const SERVERCOMM_REF = 'servercomm';
 const DATA_REF = 'data';
 
-const MSEC_BETWEEN_CHECKIN = 300000; // 5 Minutes
-const MSEC_BETWEEN_TIMEOUT = 360000; // 6 Minutes
+const MSEC_BETWEEN_CHECKIN = 10000; // 10 seconds
+const MSEC_BETWEEN_TIMEOUT = 15000; // 15 seconds
 
 var scrapeTime = 7;
 var maxUpdateTime = 120;
