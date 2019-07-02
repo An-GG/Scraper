@@ -159,9 +159,7 @@ async function handleUserSignUp(PSC_ID, PSC_PASSWORD, FB_ID, USER_SIGNUP_REF) {
   let initialEntry = {
     lightweight_snapshot: undetailedGrades,
     full_snapshot: detailedGrades,
-    tracking: {
-      origin: detailedGrades
-    }
+    origin: detailedGrades
   }
   await dataref.set(initialEntry);
 

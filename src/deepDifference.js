@@ -90,9 +90,14 @@ function cleanUp(updates) {
     	if (val.type == 'unchanged') {
       	delete cleaned[key];
       }
+      if (val.type == 'created') {
+        if (Object.keys(val.data).length == 0) {
+          delete cleaned[key];
+        }
+      }
     } else {
     	cleaned[key] = cleanUp(cleaned[key]);
-      if (Object.keys(cleaned[key]) == 0) {
+      if (Object.keys(cleaned[key]).length == 0) {
       	delete cleaned[key];
       }
     }
@@ -120,7 +125,7 @@ function rebuild(initial, updates) {
 }
 
 function getChanges(initial, current) {
-  return cleanUp(deepDiffMapper(initial, current));
+  return cleanUp(deepDiffMapper.map(initial, current));
 }
 
 
@@ -128,5 +133,6 @@ function getChanges(initial, current) {
 // EXPORTS
 
 module.exports = {
-  getChanges: getChanges
+  getChanges: getChanges,
+  rebuild: rebuild
 }

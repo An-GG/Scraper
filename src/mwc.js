@@ -2,6 +2,7 @@
 // Multi - Worker Collaboration
 // Copyright (c) Ankush Girotra 2019. All rights reserved.
 
+var diff = require('./deepDifference.js');
 var fb = null;
 var WORKER_ID = ""
 const SERVERCOMM_REF = 'servercomm';
@@ -77,6 +78,7 @@ async function deleteWorker(workerID) {
 
  var clients = {};
  var assignedClients = {};
+ var trackedClients = {};
 
 async function synchronizeClients() {
   let clientsRef = fb.database().ref('hisd_clients');
@@ -134,8 +136,53 @@ function taskRefactor() {
       assignedClients[clientID] = client;
     }
   }
+
+  // TODO: Add off function to remove child added callback for clients which are no longer in assignedClients or in trackedClients
   return assignedClients;
   console.log(assignedClients);
+}
+
+async function getTrackingForID(psc_id, fb_id) {
+  let trackedClientsIDs = Object.keys(trackedClients);
+  let clientKey = fb_id + "|" + psc_id;
+  if (trackedClientsIDs.includes(clientKey)) {
+    return trackedClients[clientKey];
+  } else {
+    let dataRef = fb.database().ref(DATA_REF + '/' + fb_id + '/' + psc_id);
+    let trackingRef = dataRef.child('tracking');
+    let originRef = dataRef.child('origin');
+    let origin = (await originRef.once('value')).val();
+    let updates = (await trackingRef.once('value')).val();
+    trackedClients[clientKey] = {};
+    trackedClients[clientKey]['origin'] = origin;
+    trackedClients[clientKey]['onCallback'] = trackingRef.on('child_added', async function (snap, prevKey) {
+      let update = snap.val();
+      trackedClients[clientKey]['tracking'][snap.key] = update;
+    });
+    if (updates == null) {
+      trackedClients[clientKey]['tracking'] = {};
+      return {
+        origin: origin,
+        tracking: {}
+      };
+    } else {
+      return {
+        origin: origin,
+        tracking: updates
+      };
+    }
+  }
+}
+
+async function getRebuiltSnapshot(psc_id, fb_id) {
+  let updates = await getTrackingForID(psc_id, fb_id);
+  let sortedTrackingIDs = Object.keys(updates.tracking).sort(sortAlphaNum);
+  var current = updates.origin;
+  for (let trackingID of sortedTrackingIDs) {
+    let update = updates['tracking'][trackingID];
+    current = rebuild(current, update);
+  }
+  return current;
 }
 
 
@@ -166,5 +213,6 @@ module.exports = {
   trackWorkers: trackWorkers,
   checkIn: checkIn,
   synchronizeClients: synchronizeClients,
-  taskRefactor: taskRefactor
+  taskRefactor: taskRefactor,
+  getRebuiltSnapshot: getRebuiltSnapshot
 };

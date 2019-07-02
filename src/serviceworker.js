@@ -9,6 +9,7 @@ var tokens = require('./tokens.js');
 var serviceAccount = require("./../echelon-f16f8-firebase-adminsdk-ytuzc-7e23c999b7.json");
 var mwc = require('./mwc.js');
 var idgenerator = require('./idgenerator.js');
+var diff = require('./deepDifference.js');
 
 var WORKER_ID = "";
 const SCRAPER_DELAY = 100;
@@ -35,9 +36,6 @@ async function test() {
   await mwc.checkIn();
   await mwc.synchronizeClients();
   setTimeout(startScraperLoop, 2000);
-  //let data = await corescraper.getUserSnapshot("STUDENT\\s1620641", "YellowRiver812");
-
-  //await fb.database().ref('data').push(data);
 }
 
 var clients = {}
@@ -112,6 +110,8 @@ async function scrapeStandard(sid, pass) {
 }
 
 async function updateFBUser(fb_id, psc_id, data, pw) {
+  // TODO: Add error handling failed data
+
   // SET NEW DATA
   let dataRef = fb.database().ref('data/' + fb_id + '/' + psc_id);
   await dataRef.update({
@@ -120,6 +120,15 @@ async function updateFBUser(fb_id, psc_id, data, pw) {
   });
 
   // TOOD: CREATE TRACKING
+  let rebuiltSnap = await mwc.getRebuiltSnapshot(psc_id, fb_id);
+  let currentSnap = data[1];
+  let updates = diff.getChanges(rebuiltSnap, currentSnap);
+  if (Object.keys(updates) != 0) {
+    let trackingRef = dataRef.child('tracking');
+    await trackingRef.push(updates);
+  }
+
+
 
   // SET NEW LAST UPDATED
   let time = (new Date() * 1);
