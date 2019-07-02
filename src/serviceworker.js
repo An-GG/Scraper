@@ -58,6 +58,10 @@ async function startScraperLoop() {
   }
   let startTime = (new Date() * 1);
   clients = mwc.taskRefactor();
+  if (Object.keys(clients).length == 0) {
+    setTimeout(startScraperLoop, 500);
+    return;
+  }
 
   // Get Least Recently Updated Client
   let sid = getLeastRecentlyUpdatedKey(clients);
