@@ -24,7 +24,7 @@ async function initializeApp() {
     databaseURL: "https://echelon-f16f8.firebaseio.com/"
   });
   await corescraper.initializeApp();
-  //await signup.initializeApp(WORKER_ID, fb, corescraper);
+  await signup.initializeApp(WORKER_ID, fb, corescraper, mwc);
   await mwc.initializeApp(WORKER_ID, fb);
 }
 
@@ -32,10 +32,7 @@ async function initializeApp() {
 
 async function test() {
   await initializeApp();
-  await mwc.trackWorkers();
-  await mwc.checkIn();
-  await mwc.synchronizeClients();
-  setTimeout(startScraperLoop, 2000);
+  setTimeout(startScraperLoop, 0);
 }
 
 var clients = {}
@@ -52,11 +49,13 @@ function logStats() {
   console.log('CYCLE DURATION: '+ last +' | AVERAGE: ' + average + ' | CYCLE: ' + cycle);
 }
 
-let altID = "STUDENT\\S1680721";
-let altPW = "10132005";
-var isOffCycle = false
 
 async function startScraperLoop() {
+  let mode = mwc.getServerMode();
+  if (!(mode == "SCRAPER" || mode == "DYNAMIC")) {
+    setTimeout(startScraperLoop, 500);
+    return;
+  }
   let startTime = (new Date() * 1);
   clients = mwc.taskRefactor();
 
@@ -68,13 +67,7 @@ async function startScraperLoop() {
   // For Each PW, Do A Scrape
   for (let password of Object.keys(value)) {
     let fb_ids = value[password].associatedUsers;
-    var data = null;
-    if (isOffCycle) {
-      data = await scrapeStandard(altID, altPW);
-    } else {
-      data = await scrapeStandard(sid, password);
-    }
-    isOffCycle = !isOffCycle;
+    let data =  await scrapeStandard(sid, password);
     // For Each FB ID Assigned To This PW, Update User
     for (var fb_id of fb_ids) {
       await updateFBUser(fb_id, sid, data, password);
@@ -137,7 +130,6 @@ async function updateFBUser(fb_id, psc_id, data, pw) {
     let trackingRef = dataRef.child('tracking');
     await trackingRef.push(updates);
   }
-
 
 
   // SET NEW LAST UPDATED

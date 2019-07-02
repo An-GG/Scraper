@@ -11,10 +11,29 @@ const DATA_REF = 'data';
 const MSEC_BETWEEN_CHECKIN = 300000; // 5 Minutes
 const MSEC_BETWEEN_TIMEOUT = 360000; // 6 Minutes
 
+var scrapeTime = 7;
+var maxUpdateTime = 120;
+var currentServerMode = "";
 
 async function initializeApp(workerid, firebase) {
   WORKER_ID = workerid;
   fb = firebase;
+
+  await trackWorkers();
+  await checkIn();
+  await synchronizeClients();
+
+  let scrapeTimeRef = fb.database().ref(SERVERCOMM_REF + "/scrapetime");
+  let maxUpdateTimeRef = fb.database().ref(SERVERCOMM_REF + "/maxupdatetime");
+  scrapeTime = (await scrapeTimeRef.once('value')).val();
+  maxUpdateTime = (await maxUpdateTimeRef.once('value')).val();
+
+  scrapeTimeRef.on('value', function(snap) {
+    scrapeTime = snap.val();
+  });
+  maxUpdateTimeRef.on('value', function(snap) {
+    maxUpdateTime = snap.val();
+  });
 }
 
 var workers = {};
@@ -68,8 +87,41 @@ async function deleteWorker(workerID) {
   // TODO: Remove worker from scraper pool
 }
 
+function getServerMode() {
+  let numberOfWorkers = Object.keys(workers).length;
+  if (numberOfWorkers < 3) {
+    scrapers = workers;
+    console.log('CURRENT MODE SET TO DYNAMIC');
+    return "DYNAMIC";
+  }
+  let numberOfClients = Object.keys(clients).length;
+
+  let maxClientsPerScraper = maxUpdateTime / scrapeTime;
+  let numberOfNeededWorkers = Math.ceil(numberOfClients / maxClientsPerScraper);
+
+  scrapers = {};
+  let sortedWorkerIDs = Object.keys(workers).sort(sortAlphaNum);
+  var workerNumber = -1;
+  for (var WORKER_N = 0; WORKER_N < sortedWorkerIDs.length; WORKER_N++) {
+    if (sortedWorkerIDs[WORKER_N] == WORKER_ID) {
+      workerNumber = WORKER_N;
+    }
+    if (numberOfNeededWorkers >= (WORKER_N + 1)) {
+      scrapers[sortedWorkerIDs[WORKER_N]] = workers[sortedWorkerIDs[WORKER_N]];
+    }
+  }
 
 
+
+
+  if (numberOfNeededWorkers >= (workerNumber + 1)) {
+    console.log('CURRENT MODE SET TO SCRAPER');
+    return "SCRAPER";
+  } else {
+    console.log('CURRENT MODE SET TO SIGNON');
+    return "SIGNON";
+  }
+}
 
 
 
@@ -77,6 +129,7 @@ async function deleteWorker(workerID) {
  // Scraper
 
  var clients = {};
+ var scrapers = {};
  var assignedClients = {};
  var trackedClients = {};
 
@@ -102,9 +155,7 @@ async function synchronizeClients() {
 }
 
 function taskRefactor() {
-  // Get Scraper Data
-  // TODO: Decide Which Workers Will Work or Scrape or Both
-  let scrapers =  workers;
+  getServerMode(); // Call To Get Scrapers
   let scraperWorkersIDs = Object.keys(scrapers);
 
   // Get Number Of Scrapers
@@ -153,7 +204,9 @@ async function getTrackingForID(psc_id, fb_id) {
     let originRef = dataRef.child('origin');
     let origin = (await originRef.once('value')).val();
     let updates = (await trackingRef.once('value')).val();
-    trackedClients[clientKey] = {};
+    trackedClients[clientKey] = {
+      tracking: {}
+    };
     trackedClients[clientKey]['origin'] = origin;
     trackedClients[clientKey]['onCallback'] = trackingRef.on('child_added', async function (snap, prevKey) {
       let update = snap.val();
@@ -177,7 +230,6 @@ async function getTrackingForID(psc_id, fb_id) {
 async function getRebuiltSnapshot(psc_id, fb_id) {
   let updates = await getTrackingForID(psc_id, fb_id);
   let sortedTrackingIDs = Object.keys(updates.tracking).sort(sortAlphaNum);
-  console.log(sortedTrackingIDs)
   var current = JSON.parse(JSON.stringify(updates.origin));
   for (let trackingID of sortedTrackingIDs) {
     let update = updates['tracking'][trackingID];
@@ -215,5 +267,6 @@ module.exports = {
   checkIn: checkIn,
   synchronizeClients: synchronizeClients,
   taskRefactor: taskRefactor,
-  getRebuiltSnapshot: getRebuiltSnapshot
+  getRebuiltSnapshot: getRebuiltSnapshot,
+  getServerMode: getServerMode
 };

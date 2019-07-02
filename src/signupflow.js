@@ -4,15 +4,17 @@
 
 var fb = null;
 var scraper = null;
+var mwc = null;
 var WORKER_ID = ""
 const SIGNUP_REF = 'servercomm/signup';
 const DATA_REF = 'data';
 
 
-async function initializeApp(workerid, firebase, corescraper) {
+async function initializeApp(workerid, firebase, corescraper, multWorkerCollab) {
   WORKER_ID = workerid;
   fb = firebase;
   scraper = corescraper;
+  mwc = multWorkerCollab;
   await attatchSignupListener();
 }
 
@@ -99,9 +101,12 @@ async function processRequest(taskID) {
 async function attatchSignupListener() {
   var signup_ref = await fb.database().ref(SIGNUP_REF);
   await signup_ref.on('child_added', async function(snap, key) {
-    var val = await snap.val();
-    var user_signup_ref = await signup_ref.child(val.FB_ID);
-    addSignupRequest(val.PSC_ID.toLowerCase(), val.PSC_PASS, val.FB_ID, user_signup_ref);
+    let mode = mwc.getServerMode();
+    if (mode == 'SIGNON' || mode == 'DYNAMIC') {
+      var val = await snap.val();
+      var user_signup_ref = await signup_ref.child(val.FB_ID);
+      addSignupRequest(val.PSC_ID.toLowerCase(), val.PSC_PASS, val.FB_ID, user_signup_ref);
+    }
   });
 }
 
