@@ -4,10 +4,11 @@
   "description": "Database scraper for Echelon",
   "main": "index.js",
   "dependencies": {
-    "firebase-admin": "^8.1.0",
+    "firebase-admin": "^8.2.0",
     "innertext": "^1.0.3",
+    "lodash": "^4.17.15",
     "node-stopwatch": "0.0.1",
-    "puppeteer": "^1.17.0"
+    "puppeteer": "^1.18.1"
   },
   "devDependencies": {},
   "scripts": {
