@@ -41,4 +41,4 @@ async function monitorRefActivity(REF) {
   });
 }
 
-simulateUserSignup('asdsadass', tokens.SAMPLES.STUDENTID, tokens.SAMPLES.STUDENTPW);
+simulateUserSignup('parentuser', tokens.SAMPLES.PARENTID, tokens.SAMPLES.PARENTPW);

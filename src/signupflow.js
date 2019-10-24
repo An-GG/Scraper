@@ -15,7 +15,7 @@ async function initializeApp(workerid, firebase, corescraper, multWorkerCollab) 
   fb = firebase;
   scraper = corescraper;
   mwc = multWorkerCollab;
-  await attatchSignupListener();
+  //await attatchSignupListener();
 }
 
 

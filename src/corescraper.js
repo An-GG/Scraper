@@ -14,7 +14,7 @@ var browser = {};
 
 async function initializeApp() {
   browser = await puppeteer.launch({
-    headless: true
+    headless: false
   });
 }
 

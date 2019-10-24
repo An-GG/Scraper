@@ -69,6 +69,7 @@ async function startScraperLoop() {
 
 
   // For Each PW, Do A Scrape
+  console.log(value);
   for (let password of Object.keys(value)) {
     let fb_ids = value[password].associatedUsers;
     let data =  await scrapeStandard(sid, password);
@@ -80,7 +81,7 @@ async function startScraperLoop() {
   let duration = (new Date() * 1) - startTime;
   durations.push(duration);
   logStats();
-  setTimeout(startScraperLoop, SCRAPER_DELAY);
+  await setTimeout(startScraperLoop, SCRAPER_DELAY);
 }
 
 function getLeastRecentlyUpdatedKey(object) {
