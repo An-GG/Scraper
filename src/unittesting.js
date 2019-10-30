@@ -41,4 +41,62 @@ async function monitorRefActivity(REF) {
   });
 }
 
-simulateUserSignup('parentuser', tokens.SAMPLES.PARENTID, tokens.SAMPLES.PARENTPW);
+//simulateUserSignup('parentuser', tokens.SAMPLES.PARENTID, tokens.SAMPLES.PARENTPW);
+
+
+let obj1 = {
+  name: "John",
+  date: "12-12-12",
+  times: [12,12,12],
+  son: {
+    name: "JJ Junior",
+    date: "12-01-01"
+  },
+  point: 1
+}
+
+let obj2 = {
+  name: "John",
+  date: "12-12-12",
+  times: [12,12,12],
+  son: {
+    name: "VV Junior",
+    date: "12-01-01"
+  }
+}
+
+
+function updateObject(time, pathArr, updateType, value) {
+  return {
+    time: time,
+    path: pathArr,
+    updateType: updateType,
+    value: value
+  }
+  /*
+  Update Type Should Be .created, .changed, .deleted
+  */
+}
+
+// Gets Differences on Current Level
+function getUpdates(oldObject, newObject, appendPath) {
+
+  var updates = [];
+
+  // Check For Objects that have been deleted or changed by checking every directory of old in new
+  for (var oldObjectKey in oldObject) {
+    if (newObject[oldObjectKey] != oldObject[oldObjectKey]) {
+        console.log('-------');
+        console.log(newObject[oldObjectKey]);
+        console.log(oldObject[oldObjectKey]);
+      if (newObject[oldObjectKey] == undefined) {
+        updates.push(updateObject("TIME", appendPath.push(oldObjectKey), "deleted", ""));
+      }
+    }
+  }
+
+
+}
+
+
+getUpdates(obj1, obj2, []);
