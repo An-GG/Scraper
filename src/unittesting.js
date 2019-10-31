@@ -151,7 +151,7 @@ function rebuildFromUpdates(oldObject, updates) {
 
     var workingDir = getNestedObject(workingObject, update.path)
 
-    console.log(workingDir);
+    console.log("---"+workingDir);
     if (update.updateType == "deleted") {
       delete workingDir;
     } else {
